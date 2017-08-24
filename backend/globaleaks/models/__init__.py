@@ -126,33 +126,6 @@ class Model(Storm):
             if k in values and values[k]:
                 setattr(self, k, values[k])
 
-    @classmethod
-    def get(cls, store, id):
-        ret = store.find(cls, id=id).one()
-        if ret is None:
-            raise errors.ModelNotFound(cls)
-
-        return ret
-
-    @classmethod
-    @transact
-    def test(store, cls, *args, **kwargs):
-        try:
-            cls.db_get(store, *args, **kwargs)
-        except:
-            return False
-
-        return True
-
-    @classmethod
-    def db_delete(cls, store, *args, **kwargs):
-        store.find(cls, *args, **kwargs).remove()
-
-    @classmethod
-    @transact
-    def delete(store, cls, **kwargs):
-        cls.db_delete(store, **kwargs)
-
     def __str__(self):
         # pylint: disable=no-member
         values = ['{}={}'.format(attr, getattr(self, attr)) for attr in self.properties]
@@ -210,17 +183,17 @@ class ModelWithTID(Model):
     tid = Int(primary=True, default=1)
 
 
-class ModelWithIDandTID(Model):
+class ModelWithTIDandID(Model):
     """
     Base class for models requiring a TID and an ID
     """
     __storm_table__ = None
 
-    id = Unicode(primary=True, default_factory=uuid4)
     tid = Int(default=1)
+    id = Unicode(primary=True, default_factory=uuid4)
 
 
-class Tenant(Model):
+class Tenant(ModelWithID):
     """
     Class used to implement tenants
     """
@@ -233,7 +206,7 @@ class Tenant(Model):
     bool_keys = ['active']
 
 
-class User(ModelWithID):
+class User(ModelWithTIDandID):
     """
     This model keeps track of globaleaks users.
     """
@@ -266,8 +239,6 @@ class User(ModelWithID):
     pgp_key_expiration = DateTime(default_factory=datetime_null)
     # END of PGP key fields
 
-    img_id = Unicode()
-
     unicode_keys = ['username', 'role', 'state',
                     'language', 'mail_address', 'name',
                     'public_name', 'language']
@@ -279,7 +250,7 @@ class User(ModelWithID):
     date_keys = ['creation_date', 'last_login', 'password_change_date', 'pgp_key_expiration']
 
 
-class Context(ModelWithID):
+class Context(ModelWithTIDandID):
     """
     This model keeps track of contexts settings.
     """
@@ -312,8 +283,6 @@ class Context(ModelWithID):
 
     questionnaire_id = Unicode(default=u'')
 
-    img_id = Unicode()
-
     unicode_keys = ['questionnaire_id']
 
     localized_keys = ['name', 'description', 'recipients_clarification', 'status_page_message']
@@ -343,7 +312,7 @@ class Context(ModelWithID):
     list_keys = ['receivers']
 
 
-class InternalTip(ModelWithID):
+class InternalTip(ModelWithTIDandID):
     """
     This is the internal representation of a Tip that has been submitted
     """
@@ -374,7 +343,7 @@ class InternalTip(ModelWithID):
         return self.wb_last_access + timedelta(days=GLSettings.memory_copy.wbtip_timetolive)
 
 
-class ReceiverTip(ModelWithID):
+class ReceiverTip(ModelWithTIDandID):
     """
     This is the table keeping track of ALL the receivers activities and
     date in a Tip, Tip core data are stored in StoredTip. The data here
@@ -399,7 +368,7 @@ class ReceiverTip(ModelWithID):
     bool_keys = ['enable_notifications']
 
 
-class WhistleblowerTip(ModelWithID):
+class WhistleblowerTip(ModelWithTIDandID):
     """
     WhisteleblowerTip implement the expiring authentication token for
     the whistleblower and acts as interface to the InternalTip.
@@ -407,7 +376,7 @@ class WhistleblowerTip(ModelWithID):
     receipt_hash = Unicode()
 
 
-class IdentityAccessRequest(ModelWithID):
+class IdentityAccessRequest(ModelWithTIDandID):
     """
     This model keeps track of identity access requests by receivers and
     of the answers by custodians.
@@ -416,12 +385,12 @@ class IdentityAccessRequest(ModelWithID):
     request_date = DateTime(default_factory=datetime_now)
     request_motivation = Unicode(default=u'')
     reply_date = DateTime(default_factory=datetime_null)
-    reply_user_id = Unicode()
+    reply_user_id = Unicode(default=u'')
     reply_motivation = Unicode(default=u'')
     reply = Unicode(default=u'pending')
 
 
-class InternalFile(ModelWithID):
+class InternalFile(ModelWithTIDandID):
     """
     This model keeps track of files before they are packaged
     for specific receivers.
@@ -443,7 +412,7 @@ class InternalFile(ModelWithID):
     processing_attempts = Int(default=0)
 
 
-class ReceiverFile(ModelWithID):
+class ReceiverFile(ModelWithTIDandID):
     """
     This model keeps track of files destinated to a specific receiver
     """
@@ -465,7 +434,7 @@ class ReceiverFile(ModelWithID):
     # wrong and now is lost
 
 
-class WhistleblowerFile(ModelWithID):
+class WhistleblowerFile(ModelWithTIDandID):
     """
     This models stores metadata of files uploaded by recipients intended to be
     delivered to the whistleblower. This file is not encrypted and nor is it
@@ -483,7 +452,7 @@ class WhistleblowerFile(ModelWithID):
     description = Unicode(validator=longtext_v)
 
 
-class Comment(ModelWithID):
+class Comment(ModelWithTIDandID):
     """
     This table handle the comment collection, has an InternalTip referenced
     """
@@ -491,7 +460,7 @@ class Comment(ModelWithID):
 
     internaltip_id = Unicode()
 
-    author_id = Unicode()
+    author_id = Unicode(default=u'')
     content = Unicode(validator=longtext_v)
 
     type = Unicode()
@@ -500,7 +469,7 @@ class Comment(ModelWithID):
     new = Int(default=True)
 
 
-class Message(ModelWithID):
+class Message(ModelWithTIDandID):
     """
     This table handle the direct messages between whistleblower and one
     Receiver.
@@ -516,7 +485,7 @@ class Message(ModelWithID):
     new = Int(default=True)
 
 
-class Mail(ModelWithID):
+class Mail(ModelWithTIDandID):
     """
     This model keeps track of emails to be spooled by the system
     """
@@ -531,7 +500,7 @@ class Mail(ModelWithID):
     unicode_keys = ['address', 'subject', 'body']
 
 
-class Receiver(ModelWithID):
+class Receiver(ModelWithTIDandID):
     """
     This model keeps track of receivers settings.
     """
@@ -561,7 +530,7 @@ class Receiver(ModelWithID):
     list_keys = ['contexts']
 
 
-class Field(ModelWithID):
+class Field(ModelWithTIDandID):
     x = Int(default=0)
     y = Int(default=0)
     width = Int(default=0)
@@ -598,7 +567,7 @@ class Field(ModelWithID):
     optional_references = ['template_id', 'step_id', 'fieldgroup_id']
 
 
-class FieldAttr(ModelWithID):
+class FieldAttr(ModelWithTIDandID):
     field_id = Unicode()
     name = Unicode()
     type = Unicode()
@@ -630,7 +599,7 @@ class FieldAttr(ModelWithID):
             setattr(self, 'value', unicode(values['value']))
 
 
-class FieldOption(ModelWithID):
+class FieldOption(ModelWithTIDandID):
     field_id = Unicode()
     presentation_order = Int(default=0)
     label = JSON()
@@ -644,7 +613,7 @@ class FieldOption(ModelWithID):
     optional_references = ['trigger_field', 'trigger_step']
 
 
-class FieldAnswer(ModelWithID):
+class FieldAnswer(ModelWithTIDandID):
     internaltip_id = Unicode()
     fieldanswergroup_id = Unicode()
     key = Unicode(default=u'')
@@ -655,7 +624,7 @@ class FieldAnswer(ModelWithID):
     bool_keys = ['is_leaf']
 
 
-class FieldAnswerGroup(ModelWithID):
+class FieldAnswerGroup(ModelWithTIDandID):
     number = Int(default=0)
     fieldanswer_id = Unicode()
 
@@ -663,7 +632,7 @@ class FieldAnswerGroup(ModelWithID):
     int_keys = ['number']
 
 
-class Step(ModelWithID):
+class Step(ModelWithTIDandID):
     questionnaire_id = Unicode()
     label = JSON()
     description = JSON()
@@ -675,7 +644,7 @@ class Step(ModelWithID):
     localized_keys = ['label', 'description']
 
 
-class Questionnaire(ModelWithID):
+class Questionnaire(ModelWithTIDandID):
     name = Unicode(default=u'')
     show_steps_navigation_bar = Bool(default=False)
     steps_navigation_requires_completion = Bool(default=False)
@@ -693,8 +662,8 @@ class Questionnaire(ModelWithID):
     list_keys = ['steps']
 
 
-class ArchivedSchema(Model):
-    __storm_primary__ = 'hash', 'type'
+class ArchivedSchema(ModelWithTID):
+    __storm_primary__ = 'tid', 'hash', 'type'
 
     hash = Unicode()
     type = Unicode()
@@ -703,29 +672,29 @@ class ArchivedSchema(Model):
     unicode_keys = ['hash']
 
 
-class Stats(ModelWithID):
+class Stats(ModelWithTIDandID):
     start = DateTime()
     summary = JSON()
     free_disk_space = Int()
 
 
-class Anomalies(ModelWithID):
+class Anomalies(ModelWithTIDandID):
     date = DateTime()
     alarm = Int()
     events = JSON()
 
 
-class SecureFileDelete(ModelWithID):
+class SecureFileDelete(ModelWithTIDandID):
     filepath = Unicode()
 
 
 # Follow classes used for Many to Many references
-class ReceiverContext(Model):
+class ReceiverContext(ModelWithTID):
     """
     Class used to implement references between Receivers and Contexts
     """
     __storm_table__ = 'receiver_context'
-    __storm_primary__ = 'context_id', 'receiver_id'
+    __storm_primary__ = 'tid', 'context_id', 'receiver_id'
 
     unicode_keys = ['context_id', 'receiver_id']
 
@@ -733,10 +702,12 @@ class ReceiverContext(Model):
     receiver_id = Unicode()
 
 
-class Counter(Model):
+class Counter(ModelWithTID):
     """
     Class used to implement unique counters
     """
+    __storm_primary__ = 'tid', 'key'
+
     key = Unicode(primary=True, validator=shorttext_v)
     counter = Int(default=1)
     update_date = DateTime(default_factory=datetime_now)
@@ -745,7 +716,7 @@ class Counter(Model):
     int_keys = ['number']
 
 
-class ShortURL(ModelWithID):
+class ShortURL(ModelWithTIDandID):
     """
     Class used to implement url shorteners
     """
@@ -755,7 +726,7 @@ class ShortURL(ModelWithID):
     unicode_keys = ['shorturl', 'longurl']
 
 
-class File(ModelWithID):
+class File(ModelWithTIDandID):
     """
     Class used for storing files
     """
@@ -764,11 +735,31 @@ class File(ModelWithID):
     unicode_keys = ['data']
 
 
-class CustomTexts(Model):
+class UserImg(ModelWithTIDandID):
+    """
+    Class used for storing user pictures
+    """
+    data = Unicode()
+
+    unicode_keys = ['data']
+
+
+class ContextImg(ModelWithTIDandID):
+    """
+    Class used for storing context pictures
+    """
+    data = Unicode()
+
+    unicode_keys = ['data']
+
+
+class CustomTexts(ModelWithTID):
     """
     Class used to implement custom texts
     """
-    lang = Unicode(primary=True, validator=shorttext_v)
+    __storm_primary__ = 'tid', 'lang'
+
+    lang = Unicode(validator=shorttext_v)
     texts = JSON()
 
     unicode_keys = ['lang']
