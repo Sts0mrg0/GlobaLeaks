@@ -34,6 +34,8 @@ from globaleaks.models.config import PrivateFactory
 from globaleaks.settings import GLSettings
 from globaleaks.utils.utility import log
 
+XTIDX = 1
+
 migration_mapping = OrderedDict([
     ('Anomalies', [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, models.Anomalies, 0, 0, 0, 0, 0, 0, 0, 0]),
     ('ArchivedSchema', [-1, -1, -1, ArchivedSchema_v_23, models.ArchivedSchema, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
@@ -86,7 +88,7 @@ def db_perform_data_update(store):
         # The below commands can change the current store based on the what is
         # currently stored in the DB.
         appdata = load_appdata()
-        db_update_defaults(store)
+        db_update_defaults(store, XTIDX)
         l10n.update_defaults(store, appdata)
         config.update_defaults(store)
         db_fix_fields_attrs(store)

@@ -8,8 +8,6 @@ import traceback
 from storm import exceptions
 
 from globaleaks import models, security, DATABASE_VERSION, FIRST_DATABASE_VERSION_SUPPORTED
-from globaleaks.db.appdata import db_update_defaults, load_appdata
-from globaleaks.handlers.admin import files
 from globaleaks.handlers.base import GLSession
 from globaleaks.orm import transact, transact_sync
 from globaleaks.settings import GLSettings
@@ -41,30 +39,13 @@ def db_create_tables(store):
 
 @transact_sync
 def init_db(store):
-    log.debug("Performing database initialization...")
+    from globaleaks.handlers.admin import tenant
 
-    appdata = load_appdata()
+    log.debug("Performing database initialization...")
 
     db_create_tables(store)
 
-    store.add(models.Tenant())
-
-    db_update_defaults(store)
-
-    models.config.system_cfg_init(store)
-
-    models.l10n.EnabledLanguage.add_all_supported_langs(store, appdata)
-
-    store.add(models.Tenant())
-
-    file_descs = [
-      (u'logo', 'data/logo.png'),
-      (u'favicon', 'data/favicon.ico')
-    ]
-
-    for file_desc in file_descs:
-        with open(os.path.join(GLSettings.client_path, file_desc[1]), 'r') as f:
-            files.db_add_file(store, f.read(), file_desc[0])
+    tenant.db_create(store, {})
 
 
 def update_db():
@@ -162,7 +143,7 @@ def db_refresh_memory_variables(store):
         'receiver': node_ro.tor2web_receiver
     }
 
-    enabled_langs = models.l10n.EnabledLanguage.list(store)
+    enabled_langs = models.l10n.EnabledLanguage.list(store, 1)
     GLSettings.memory_copy.languages_enabled = enabled_langs
 
     notif_fact = models.config.NotificationFactory(store)

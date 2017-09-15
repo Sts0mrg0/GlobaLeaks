@@ -19,7 +19,7 @@ class Config(ModelWithTID):
     customized = Bool(default=False)
 
 
-    def __init__(self, group=None, name=None, value=None, cfg_desc=None, migrate=False):
+    def __init__(self, tid=1, group=None, name=None, value=None, cfg_desc=None, migrate=False):
         """
         :param value:    This input is passed directly into set_v
         :param migrate:  Added to comply with models.Model constructor which is
@@ -34,9 +34,9 @@ class Config(ModelWithTID):
         if migrate:
             return
 
+        self.tid = tid 
         self.var_group = unicode(group)
         self.var_name = unicode(name)
-
         self.set_v(value)
 
     @staticmethod
@@ -125,7 +125,8 @@ class ConfigFactory(object):
         missing = allowed - actual
 
         for key in missing:
-            self.store.add(Config(self.group, key, self.group_desc[key].default))
+            # TODOOOOOOOOOOOOOOOO
+            self.store.add(Config(1, self.group, key, self.group_desc[key].default))
 
         extra = actual - allowed
 
@@ -206,10 +207,10 @@ class PrivateFactory(ConfigFactory):
 factories = [NodeFactory, NotificationFactory, PrivateFactory]
 
 
-def system_cfg_init(store):
-    for gname, group in GLConfig.items():
+def system_cfg_init(store, tid):
+    for group_name, group in GLConfig.items():
         for var_name, desc in group.items():
-            store.add(Config(gname, var_name, desc.default))
+            store.add(Config(tid, group_name, var_name, desc.default))
 
 
 def del_cfg_not_in_groups(store):

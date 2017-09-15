@@ -18,6 +18,8 @@ from globaleaks.rest import errors, requests
 from globaleaks.settings import GLSettings
 from globaleaks.utils.utility import log
 
+XTIDX = 1
+
 
 def db_admin_serialize_node(store, language):
     node_dict = NodeFactory(store).admin_export()
@@ -63,7 +65,7 @@ def enable_disable_languages(store, request):
             if appdata is None:
                 appdata = load_appdata()
             log.debug("Adding a new lang %s" % lang_code)
-            EnabledLanguage.add_new_lang(store, lang_code, appdata)
+            EnabledLanguage.add_new_lang(store, XTIDX, lang_code, appdata)
 
     to_remove = list(set(cur_enabled_langs) - set(new_enabled_langs))
 
