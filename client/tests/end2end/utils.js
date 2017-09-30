@@ -20,6 +20,7 @@ exports.vars = {
 };
 
 browser.getCapabilities().then(function(capabilities) {
+  console.log(capabilities);
   exports.isMobile = function() {
     var platformName = capabilities.get('platformName') || capabilities.get('platform');
     platformName = platformName.toLowerCase();
